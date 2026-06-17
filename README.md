@@ -25,7 +25,7 @@ Google Chrome profillerinizi yedekleyip format sonrası geri yükleyen Windows u
 
 ## Kurulum (kullanıcı)
 
-1. [Releases](https://github.com/KULLANICI/chromeprofil/releases) sayfasından `ChromeProfilYedek.exe` indirin  
+1. [Releases](https://github.com/SoulzHem/ChromeProfilYedekleme/releases) sayfasından `ChromeProfilYedek.exe` indirin  
    *(veya kendiniz derleyin — aşağıya bakın)*
 2. EXE'yi istediğiniz klasöre koyun
 3. Çift tıklayarak açın

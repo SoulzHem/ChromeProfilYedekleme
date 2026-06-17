@@ -1,3 +1,4 @@
+using ChromeProfilApp.Helpers;
 using ChromeProfilApp.Models;
 using ChromeProfilApp.Services;
 
@@ -25,6 +26,7 @@ public sealed class ProfileDetailForm : Form
         _profile = profile;
 
         Text = $"Profil Detayı — {profile.Name}";
+        AppIconHelper.Apply(this);
         Size = new Size(1000, 700);
         MinimumSize = new Size(880, 580);
         StartPosition = FormStartPosition.CenterParent;

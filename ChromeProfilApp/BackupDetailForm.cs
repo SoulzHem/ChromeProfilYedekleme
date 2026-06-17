@@ -1,3 +1,4 @@
+using ChromeProfilApp.Helpers;
 using ChromeProfilApp.Models;
 using ChromeProfilApp.Services;
 
@@ -31,6 +32,7 @@ public sealed class BackupDetailForm : Form
 
         StartBackupConfirmed = false;
         Text = confirmMode ? "Yedekleme Onayı" : "Yedekleme Detayları";
+        AppIconHelper.Apply(this);
         Size = new Size(980, 680);
         MinimumSize = new Size(860, 540);
         StartPosition = FormStartPosition.CenterParent;

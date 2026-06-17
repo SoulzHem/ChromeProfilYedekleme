@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ChromeProfilApp.Helpers;
 using ChromeProfilApp.Models;
 using ChromeProfilApp.Services;
 
@@ -12,6 +13,7 @@ public sealed class RestoreSelectForm : Form
     public RestoreSelectForm(string backupPath)
     {
         Text = "Geri Yüklenecek Profiller";
+        AppIconHelper.Apply(this);
         Size = new Size(520, 420);
         StartPosition = FormStartPosition.CenterParent;
         Font = new Font("Segoe UI", 10F);

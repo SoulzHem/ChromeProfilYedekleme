@@ -1,10 +1,13 @@
 namespace ChromeProfilApp;
 
+using ChromeProfilApp.Helpers;
+
 public sealed class ScheduleBackupForm : Form
 {
     public ScheduleBackupForm(string exePath)
     {
         Text = "Zamanlanmış Yedek";
+        AppIconHelper.Apply(this);
         Size = new Size(480, 280);
         StartPosition = FormStartPosition.CenterParent;
         Font = new Font("Segoe UI", 10F);

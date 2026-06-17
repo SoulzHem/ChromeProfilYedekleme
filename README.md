@@ -83,6 +83,22 @@ chromeprofil/
 - Format sonrası bazı şifreler Windows hesabına bağlı olduğu için çalışmayabilir
 - Google hesabıyla giriş yaptığınız profiller genelde tekrar oturum açar
 
+## Windows Defender uyarısı
+
+Bu uygulama **açık kaynaklı** bir yedekleme aracıdır; imzasız tek EXE dosyaları ve Chrome profil/şifre dosyalarına erişim Defender tarafından yanlışlıkla “zararlı” sayılabilir.
+
+**v1.0.1’de yapılan iyileştirmeler:**
+- Sıkıştırılmış self-extract EXE kapatıldı (en sık tetikleyen neden)
+- Ürün metadata’sı ve uygulama manifest’i eklendi
+- Şüpheli COM şifre çözme kodu kaldırıldı
+
+**Hâlâ uyarı alırsanız:**
+1. [GitHub Releases](https://github.com/SoulzHem/ChromeProfilYedekleme/releases) üzerinden indirdiğinizden emin olun
+2. Windows Güvenliği → Virüs ve tehdit koruması → **İstisnalar** → EXE klasörünü ekleyin
+3. [Microsoft yanlış pozitif bildirimi](https://www.microsoft.com/en-us/wdsi/filesubmission) gönderin (dosya: `ChromeProfilYedek.exe`, geliştirici: SoulzHem)
+
+Kalıcı çözüm için kod imzalama sertifikası gerekir (ücretli).
+
 ## Lisans
 
 MIT

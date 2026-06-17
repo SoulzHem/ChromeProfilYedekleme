@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using ChromeProfilApp.Helpers;
 using ChromeProfilApp.Models;
 using ChromeProfilApp.Services;
 
@@ -39,6 +40,7 @@ public sealed class MainForm : Form
         Font = new Font("Segoe UI", 10F);
         BackColor = Color.FromArgb(248, 249, 252);
         Cursor = Cursors.Default;
+        AppIconHelper.Apply(this);
 
         BuildLayout();
         Shown += async (_, _) => await LoadProfilesAsync();
@@ -65,7 +67,7 @@ public sealed class MainForm : Form
             ForeColor = Color.White,
             Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
             AutoSize = true,
-            Location = new Point(24, 16)
+            Location = new Point(72, 16)
         });
         header.Controls.Add(new Label
         {
@@ -73,8 +75,20 @@ public sealed class MainForm : Form
             ForeColor = Color.FromArgb(230, 240, 255),
             Font = new Font("Segoe UI", 9.5F),
             AutoSize = true,
-            Location = new Point(26, 58)
+            Location = new Point(74, 58)
         });
+
+        var headerIcon = new PictureBox
+        {
+            Size = new Size(40, 40),
+            Location = new Point(24, 22),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BackColor = Color.Transparent
+        };
+        var appIcon = AppIconHelper.Load();
+        if (appIcon != null)
+            headerIcon.Image = appIcon.ToBitmap();
+        header.Controls.Add(headerIcon);
 
         var pathPanel = new TableLayoutPanel
         {

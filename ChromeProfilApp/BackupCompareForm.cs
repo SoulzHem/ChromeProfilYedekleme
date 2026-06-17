@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ChromeProfilApp.Helpers;
 using ChromeProfilApp.Models;
 using ChromeProfilApp.Services;
 
@@ -9,6 +10,7 @@ public sealed class BackupCompareForm : Form
     public BackupCompareForm(IReadOnlyList<BackupInfo> backups)
     {
         Text = "Yedek Karşılaştırma";
+        AppIconHelper.Apply(this);
         Size = new Size(900, 520);
         StartPosition = FormStartPosition.CenterParent;
         Font = new Font("Segoe UI", 10F);

@@ -54,116 +54,24 @@ public sealed class BackupDetailForm : Form
 
     private void BuildLayout(BackupPreviewSummary preview, bool confirmMode)
     {
-        var header = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 118,
-            Padding = new Padding(16, 12, 16, 8),
-            BackColor = Color.White
-        };
-
-        header.Controls.Add(new Label
-        {
-            Dock = DockStyle.Fill,
-            ForeColor = Color.FromArgb(32, 33, 36),
-            Text =
-                $"Seçili profil: {preview.ProfileCount}  |  " +
-                $"Tahmini boyut: {ChromeService.FormatSize(preview.TotalBackupBytes)}\r\n\r\n" +
-                $"Kayıt yeri: {preview.EstimatedFullPath}\r\n\r\n" +
-                "Yedeklenmeyecek kısımları 'Yedek Ayarları' sekmesinden kapatın."
-        });
-
-        var tabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10F) };
-        tabs.TabPages.Add(BuildProfilesTab(preview));
-        tabs.TabPages.Add(BuildOptionsTab());
-        tabs.TabPages.Add(BuildContentTab());
-
-        var footer = new Panel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 52,
-            Padding = new Padding(16, 8, 16, 8),
-            BackColor = Color.White
-        };
-
-        if (confirmMode)
-        {
-            var btnStart = CreateButton("Yedeklemeyi Başlat", Color.FromArgb(26, 115, 232));
-            btnStart.Location = new Point(680, 8);
-            btnStart.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnStart.Click += (_, _) =>
-            {
-                Options = ReadOptions();
-                StartBackupConfirmed = true;
-                DialogResult = DialogResult.OK;
-                Close();
-            };
-
-            var btnCancel = CreateButton("İptal", Color.FromArgb(95, 99, 104));
-            btnCancel.Location = new Point(820, 8);
-            btnCancel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnCancel.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
-
-            footer.Controls.AddRange([btnStart, btnCancel]);
-        }
-        else
-        {
-            var btnStart = CreateButton("Yedeklemeyi Başlat", Color.FromArgb(26, 115, 232));
-            btnStart.Location = new Point(680, 8);
-            btnStart.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnStart.Click += (_, _) =>
-            {
-                Options = ReadOptions();
-                StartBackupConfirmed = true;
-                DialogResult = DialogResult.OK;
-                Close();
-            };
-
-            var btnClose = CreateButton("Kapat", Color.FromArgb(95, 99, 104));
-            btnClose.Location = new Point(820, 8);
-            btnClose.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnClose.Click += (_, _) => Close();
-            footer.Controls.AddRange([btnStart, btnClose]);
-        }
+        var header = BackupDetailLayoutBuilder.CreateHeader(preview);
+        var tabs = BackupDetailLayoutBuilder.CreateTabs(preview, _includedLabel, _excludedLabel,
+            _chkPasswords, _chkHistory, _chkCookies, _chkExtensions, _chkCache);
+        var footer = BackupDetailLayoutBuilder.CreateFooter(confirmMode,
+            () => StartConfirmed(),
+            () => Close());
 
         Controls.Add(tabs);
         Controls.Add(footer);
         Controls.Add(header);
     }
 
-    private TabPage BuildOptionsTab()
+    private void StartConfirmed()
     {
-        var page = new TabPage("Yedek Ayarları") { Padding = new Padding(16), BackColor = Color.White };
-
-        var info = new Label
-        {
-            Dock = DockStyle.Top,
-            Height = 40,
-            ForeColor = Color.FromArgb(95, 99, 104),
-            Text = "İşaretini kaldırdığınız kısımlar yedeklenmez (kopyalandıktan sonra silinir)."
-        };
-
-        var panel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            Height = 160,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            AutoSize = false
-        };
-        panel.Controls.AddRange([_chkPasswords, _chkHistory, _chkCookies, _chkExtensions, _chkCache]);
-
-        _includedLabel.Dock = DockStyle.Top;
-        _includedLabel.Height = 80;
-        _includedLabel.ForeColor = Color.FromArgb(52, 168, 83);
-        _excludedLabel.Dock = DockStyle.Fill;
-        _excludedLabel.ForeColor = Color.FromArgb(217, 48, 37);
-
-        page.Controls.Add(_excludedLabel);
-        page.Controls.Add(_includedLabel);
-        page.Controls.Add(panel);
-        page.Controls.Add(info);
-        return page;
+        Options = ReadOptions();
+        StartBackupConfirmed = true;
+        DialogResult = DialogResult.OK;
+        Close();
     }
 
     private void RefreshOptionSummary()
@@ -183,68 +91,5 @@ public sealed class BackupDetailForm : Form
         IncludeCookies = _chkCookies.Checked,
         IncludeExtensions = _chkExtensions.Checked,
         IncludeCache = _chkCache.Checked
-    };
-
-    private static TabPage BuildProfilesTab(BackupPreviewSummary preview)
-    {
-        var page = new TabPage("Seçili Profiller") { Padding = new Padding(8) };
-
-        var grid = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            ReadOnly = true,
-            AllowUserToAddRows = false,
-            RowHeadersVisible = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            BackgroundColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle
-        };
-
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Profil", FillWeight = 14 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Klasör", FillWeight = 10 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Hesaplar", FillWeight = 22 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Yedek Boyutu", FillWeight = 11 });
-
-        foreach (var p in preview.Profiles)
-        {
-            grid.Rows.Add(
-                p.Name,
-                p.Folder,
-                p.Accounts.Count > 0 ? p.EmailDisplay : p.Email,
-                ChromeService.FormatSize(p.BackupSizeBytes));
-        }
-
-        page.Controls.Add(grid);
-        return page;
-    }
-
-    private TabPage BuildContentTab()
-    {
-        var page = new TabPage("Bilgi") { Padding = new Padding(12), BackColor = Color.White };
-        page.Controls.Add(new Label
-        {
-            Dock = DockStyle.Fill,
-            ForeColor = Color.FromArgb(32, 33, 36),
-            Text =
-                "Her zaman yedeklenir:\r\n" +
-                "• Yer imleri (Bookmarks)\r\n" +
-                "• Profil ayarları (Preferences)\r\n" +
-                "• Local State (profil listesi)\r\n\r\n" +
-                "Profil seçimi ana ekrandaki 'Yedekle' sütunundan yapılır.\r\n\r\n" +
-                "Geri yüklemede yedekte olmayan kısımlar (ör. şifre hariç yedek) geri gelmez."
-        });
-        return page;
-    }
-
-    private static Button CreateButton(string text, Color backColor) => new()
-    {
-        Text = text,
-        Size = new Size(130, 34),
-        FlatStyle = FlatStyle.Flat,
-        FlatAppearance = { BorderSize = 0 },
-        BackColor = backColor,
-        ForeColor = Color.White,
-        Cursor = Cursors.Hand,
-        Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold)
     };
 }

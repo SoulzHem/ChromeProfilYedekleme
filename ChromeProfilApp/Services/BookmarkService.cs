@@ -97,6 +97,13 @@ public sealed class BookmarkService
 
     private static void TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); } catch { /* ignore */ }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            // Temp file may be in use
+        }
     }
 }

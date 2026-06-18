@@ -18,19 +18,23 @@
     <Description>Google Chrome profillerini yedekleme ve geri yükleme aracı</Description>
     <Company>SoulzHem</Company>
     <Copyright>Copyright © SoulzHem</Copyright>
-    <PublishSingleFile>false</PublishSingleFile>
-    <SelfContained>false</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
   </ItemGroup>
+
+  <!-- Native SQLite interop is provided by SQLitePCL bundle; no hardcoded includes -->
 
   <ItemGroup>
     <None Include="Assets\app-icon.ico" />

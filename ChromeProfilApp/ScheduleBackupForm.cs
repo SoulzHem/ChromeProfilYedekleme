@@ -12,51 +12,10 @@ public sealed class ScheduleBackupForm : Form
         StartPosition = FormStartPosition.CenterParent;
         Font = new Font("Segoe UI", 10F);
 
-        var info = new Label
-        {
-            Location = new Point(16, 16),
-            Size = new Size(430, 60),
-            Text = "Windows Görev Zamanlayıcı ile otomatik yedek oluşturur.\nChrome açıksa o hafta yedek atlanır."
-        };
-
-        var lblFreq = new Label { Text = "Sıklık:", Location = new Point(16, 88), AutoSize = true };
-        var combo = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Location = new Point(100, 84),
-            Size = new Size(200, 28)
-        };
-        combo.Items.AddRange(["Her gün", "Her hafta (Pazar)", "Her ay (1. gün)"]);
-        combo.SelectedIndex = 1;
-
-        var lblTime = new Label { Text = "Saat:", Location = new Point(16, 124), AutoSize = true };
-        var time = new DateTimePicker
-        {
-            Location = new Point(100, 120),
-            Size = new Size(100, 28),
-            Format = DateTimePickerFormat.Time,
-            ShowUpDown = true,
-            Value = DateTime.Today.AddHours(2)
-        };
-
-        var btnCreate = new Button
-        {
-            Text = "Görev Oluştur",
-            Location = new Point(16, 170),
-            Size = new Size(130, 34),
-            BackColor = Color.FromArgb(26, 115, 232),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat
-        };
-        btnCreate.FlatAppearance.BorderSize = 0;
-
-        var btnDelete = new Button
-        {
-            Text = "Görevi Sil",
-            Location = new Point(160, 170),
-            Size = new Size(100, 34),
-            FlatStyle = FlatStyle.Flat
-        };
+        var info = ScheduleBackupFormLayoutBuilder.CreateInfoLabel();
+        var (lblFreq, combo) = ScheduleBackupFormLayoutBuilder.CreateFrequencyPanel();
+        var (lblTime, time) = ScheduleBackupFormLayoutBuilder.CreateTimePanel();
+        var (btnCreate, btnDelete) = ScheduleBackupFormLayoutBuilder.CreateButtonPanel();
 
         btnCreate.Click += (_, _) =>
         {
@@ -99,6 +58,7 @@ public sealed class ScheduleBackupForm : Form
             MessageBox.Show("Görev silindi (varsa).", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
         };
 
-        Controls.AddRange([info, lblFreq, combo, lblTime, time, btnCreate, btnDelete]);
+        Controls.AddRange(new Control[] { info, lblFreq, combo, lblTime, time, btnCreate, btnDelete });
     }
 }
+

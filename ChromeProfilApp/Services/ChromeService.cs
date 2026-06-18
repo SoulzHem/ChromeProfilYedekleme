@@ -89,7 +89,10 @@ public sealed class ChromeService
         foreach (var proc in Process.GetProcessesByName("chrome"))
         {
             try { proc.Kill(); }
-            catch { /* ignore */ }
+            catch
+            {
+                // Process may already be terminated or not killable by user — continue with others
+            }
         }
 
         Thread.Sleep(3000);

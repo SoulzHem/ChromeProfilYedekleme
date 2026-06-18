@@ -53,7 +53,10 @@ internal static class BackupExclusionHelper
                 if (File.Exists(path)) File.Delete(path);
                 else if (Directory.Exists(path)) Directory.Delete(path, true);
             }
-            catch { /* ignore locked files */ }
+            catch
+            {
+                // File or directory may be in use by Chrome process
+            }
         }
     }
 
@@ -64,6 +67,9 @@ internal static class BackupExclusionHelper
             if (Directory.Exists(path))
                 Directory.Delete(path, true);
         }
-        catch { /* ignore */ }
+        catch
+        {
+            // Directory may be in use or have permission issues
+        }
     }
 }

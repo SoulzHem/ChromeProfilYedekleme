@@ -15,6 +15,7 @@ public sealed class ProfileDetailForm : Form
     private readonly DataGridView _historyGrid = new();
     private readonly CheckBox _showPasswords = new();
     private readonly Label _pwdInfoLabel = new();
+    private TableLayoutPanel _summaryTable = null!;
     private List<SavedPassword> _passwords = [];
     private List<BookmarkItem> _bookmarks = [];
     private List<HistoryItem> _history = [];
@@ -34,32 +35,27 @@ public sealed class ProfileDetailForm : Form
         BackColor = Color.FromArgb(248, 249, 252);
         Cursor = Cursors.Default;
 
+        InitializeGrids();
         BuildLayout();
         Load += async (_, _) => await LoadDataAsync();
     }
 
     private void BuildLayout()
     {
-        var tabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10F) };
+        var tabs = ProfileDetailLayoutBuilder.CreateTabs(this, _profile, _passwordGrid, _bookmarkGrid,
+            _accountGrid, _extensionGrid, _historyGrid, _showPasswords, _pwdInfoLabel,
+            out var summaryTable, LoadDataAsync);
 
-        tabs.TabPages.Add(BuildSummaryTab());
-        tabs.TabPages.Add(BuildAccountsTab());
-        tabs.TabPages.Add(BuildExtensionsTab());
-        tabs.TabPages.Add(BuildBookmarksTab());
-        tabs.TabPages.Add(BuildHistoryTab());
-        tabs.TabPages.Add(BuildPasswordsTab());
+        _summaryTable = summaryTable;
 
-        var exportBar = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.White, Padding = new Padding(12, 8, 12, 8) };
-        var lblExport = new Label { Text = "CSV dışa aktar:", AutoSize = true, Location = new Point(12, 12) };
-        var btnBookmarks = CreateExportBtn("Yer İmleri", () => ExportBookmarks());
-        var btnPasswords = CreateExportBtn("Şifreler", () => ExportPasswords());
-        var btnAccounts = CreateExportBtn("E-postalar", () => ExportAccounts());
-        var btnHistory = CreateExportBtn("Geçmiş", () => ExportHistory());
-        btnBookmarks.Location = new Point(120, 6);
-        btnPasswords.Location = new Point(220, 6);
-        btnAccounts.Location = new Point(310, 6);
-        btnHistory.Location = new Point(410, 6);
-        exportBar.Controls.AddRange([lblExport, btnBookmarks, btnPasswords, btnAccounts, btnHistory]);
+        var btnBookmarks = CreateExportBtn("Yer İmleri", ExportBookmarks);
+        var btnPasswords = CreateExportBtn("Şifreler", ExportPasswords);
+        var btnAccounts = CreateExportBtn("E-postalar", ExportAccounts);
+        var btnHistory = CreateExportBtn("Geçmiş", ExportHistory);
+        var exportBar = ProfileDetailLayoutBuilder.CreateExportBar(btnBookmarks, btnPasswords, btnAccounts, btnHistory);
+
+        _showPasswords.Location = new Point(0, 6);
+        _showPasswords.CheckedChanged += (_, _) => RefreshPasswordGrid();
 
         Controls.Add(tabs);
         Controls.Add(exportBar);
@@ -105,172 +101,35 @@ public sealed class ProfileDetailForm : Form
         }
     }
 
-    private TabPage BuildHistoryTab()
+    private void InitializeGrids()
     {
-        var page = new TabPage("Geçmiş") { Padding = new Padding(8) };
-        ConfigureGrid(_historyGrid);
-        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Başlık", FillWeight = 25 });
-        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Adres", FillWeight = 40 });
-        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ziyaret", FillWeight = 10 });
-        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Son", FillWeight = 15 });
-        _historyGrid.Dock = DockStyle.Fill;
-        page.Controls.Add(_historyGrid);
-        return page;
-    }
-
-    private TabPage BuildSummaryTab()
-    {
-        var page = new TabPage("Özet") { BackColor = Color.White, Padding = new Padding(12) };
-
-        var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Color.White };
-        var table = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            ColumnCount = 2,
-            Padding = new Padding(8),
-            BackColor = Color.White
-        };
-        table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
-        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-
-        _summaryTable = table;
-        scroll.Controls.Add(table);
-        page.Controls.Add(scroll);
-        return page;
-    }
-
-    private TableLayoutPanel _summaryTable = null!;
-
-    private void FillSummaryTab()
-    {
-        _summaryTable.Controls.Clear();
-        _summaryTable.RowStyles.Clear();
-        _summaryTable.RowCount = 0;
-
-        var cacheSize = _profile.DiskSizeBytes - _profile.BackupSizeBytes;
-        var lastActive = _profile.LastActive?.ToString("dd.MM.yyyy HH:mm") ?? "-";
-        var googleCount = _profile.Accounts.Count(a => a.AccountKind.StartsWith("Google", StringComparison.OrdinalIgnoreCase));
-        var siteCount = _profile.Accounts.Count(a => a.AccountKind == "Site Girişi");
-
-        AddRow(_summaryTable, "Profil adı", _profile.Name);
-        AddRow(_summaryTable, "Ana e-posta", _profile.Email);
-        AddRow(_summaryTable, "Google hesapları", googleCount.ToString());
-        AddRow(_summaryTable, "Site giriş e-postaları", siteCount.ToString());
-        AddRow(_summaryTable, "Klasör", _profile.Folder);
-        AddRow(_summaryTable, "Profil yolu", _stats.ProfilePath);
-        AddRow(_summaryTable, "Chrome sürümü", _stats.ChromeVersion);
-        AddRow(_summaryTable, "Geçmiş kaydı", _stats.HistoryCount.ToString("N0"));
-        AddRow(_summaryTable, "Oturum dosyası", _stats.OpenTabCount > 0 ? "Var (açık sekmeler kayıtlı)" : "Yok");
-        AddRow(_summaryTable, "Yer imi", _profile.BookmarkCount.ToString());
-        AddRow(_summaryTable, "Kayıtlı şifre", _profile.PasswordCount.ToString());
-        AddRow(_summaryTable, "Eklenti", _profile.ExtensionCount.ToString());
-        AddRow(_summaryTable, "Son kullanım", lastActive);
-        AddRow(_summaryTable, "Yedek boyutu", ChromeService.FormatSize(_profile.BackupSizeBytes));
-        AddRow(_summaryTable, "Disk boyutu", $"{ChromeService.FormatSize(_profile.DiskSizeBytes)} (önbellek dahil)");
-        AddRow(_summaryTable, "Önbellek", $"~{ChromeService.FormatSize(Math.Max(0, cacheSize))} (yedeklenmez)");
-    }
-
-    private TabPage BuildAccountsTab()
-    {
-        var page = new TabPage("E-postalar") { Padding = new Padding(8) };
-
-        var info = new Label
-        {
-            Dock = DockStyle.Top,
-            Height = 44,
-            ForeColor = Color.FromArgb(95, 99, 104),
-            Text = "Google Hesabı = Chrome'a giriş yaptığınız hesap. Site Girişi = sitelere kaydettiğiniz e-posta adresleri."
-        };
-
         ConfigureGrid(_accountGrid);
-        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "E-posta", FillWeight = 32 });
-        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ad", FillWeight = 22 });
-        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Tür", FillWeight = 18 });
-        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Not", FillWeight = 14 });
-        _accountGrid.Dock = DockStyle.Fill;
-
-        page.Controls.Add(_accountGrid);
-        page.Controls.Add(info);
-        return page;
-    }
-
-    private TabPage BuildExtensionsTab()
-    {
-        var page = new TabPage("Eklentiler") { Padding = new Padding(8) };
         ConfigureGrid(_extensionGrid);
-        _extensionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Eklenti", FillWeight = 40 });
-        _extensionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sürüm", FillWeight = 15 });
-        _extensionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Kimlik", FillWeight = 30 });
-        _extensionGrid.Dock = DockStyle.Fill;
-        page.Controls.Add(_extensionGrid);
-        return page;
-    }
-
-    private TabPage BuildBookmarksTab()
-    {
-        var page = new TabPage($"Yer İmleri ({_profile.BookmarkCount})") { Padding = new Padding(8) };
         ConfigureGrid(_bookmarkGrid);
-        _bookmarkGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Başlık", FillWeight = 28 });
-        _bookmarkGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Klasör", FillWeight = 22 });
-        _bookmarkGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Adres", FillWeight = 50 });
-        _bookmarkGrid.Dock = DockStyle.Fill;
-        page.Controls.Add(_bookmarkGrid);
-        return page;
-    }
-
-    private TabPage BuildPasswordsTab()
-    {
-        var page = new TabPage($"Şifreler ({_profile.PasswordCount})") { Padding = new Padding(8) };
-
-        var top = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = Color.FromArgb(248, 249, 252) };
-
-        _pwdInfoLabel.Dock = DockStyle.Top;
-        _pwdInfoLabel.Height = 36;
-        _pwdInfoLabel.ForeColor = Color.FromArgb(95, 99, 104);
-        _pwdInfoLabel.Text = "Chrome kapalı olmalı. Yeni Chrome sürümlerinde bazı şifreler v20 koruması nedeniyle görüntülenemeyebilir.";
-
-        var btnRow = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            Height = 36,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false
-        };
-
-        _showPasswords.Text = "Şifreleri göster";
-        _showPasswords.AutoSize = true;
-        _showPasswords.Margin = new Padding(0, 6, 16, 0);
-        _showPasswords.CheckedChanged += (_, _) => RefreshPasswordGrid();
-
-        var btnReload = new Button
-        {
-            Text = "Yeniden yükle",
-            AutoSize = true,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.FromArgb(26, 115, 232),
-            ForeColor = Color.White,
-            Cursor = Cursors.Hand
-        };
-        btnReload.FlatAppearance.BorderSize = 0;
-        btnReload.Click += async (_, _) => await LoadDataAsync();
-
-        btnRow.Controls.Add(_showPasswords);
-        btnRow.Controls.Add(btnReload);
-
-        top.Controls.Add(btnRow);
-        top.Controls.Add(_pwdInfoLabel);
-
         ConfigureGrid(_passwordGrid);
-        _passwordGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Site", FillWeight = 35 });
-        _passwordGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Kullanıcı", FillWeight = 25 });
-        _passwordGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Şifre", FillWeight = 25 });
-        _passwordGrid.Dock = DockStyle.Fill;
+        ConfigureGrid(_historyGrid);
 
-        page.Controls.Add(_passwordGrid);
-        page.Controls.Add(top);
-        return page;
+        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "E-posta", Name = "Email", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "İsim", Name = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Tür", Name = "Kind", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _accountGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Durum", Name = "Status", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells });
+
+        _extensionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ad", Name = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _extensionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sürüm", Name = "Version", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells });
+        _extensionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", Name = "Id", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+
+        _bookmarkGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Başlık", Name = "Title", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _bookmarkGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Klasör", Name = "Folder", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _bookmarkGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "URL", Name = "Url", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+
+        _passwordGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Site", Name = "Site", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _passwordGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Kullanıcı", Name = "Username", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _passwordGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Şifre", Name = "Password", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+
+        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Başlık", Name = "Title", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "URL", Name = "Url", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Ziyaret", Name = "VisitCount", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells });
+        _historyGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Tarih", Name = "LastVisit", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells });
     }
 
     private static void ConfigureGrid(DataGridView grid)
@@ -312,6 +171,35 @@ public sealed class ProfileDetailForm : Form
         }, 1, row);
     }
 
+    private void UpdateSummaryTab()
+    {
+        _summaryTable.Controls.Clear();
+        _summaryTable.RowStyles.Clear();
+        _summaryTable.RowCount = 0;
+
+        var cacheSize = _profile.DiskSizeBytes - _profile.BackupSizeBytes;
+        var lastActive = _profile.LastActive?.ToString("dd.MM.yyyy HH:mm") ?? "-";
+        var googleCount = _profile.Accounts.Count(a => a.AccountKind.StartsWith("Google", StringComparison.OrdinalIgnoreCase));
+        var siteCount = _profile.Accounts.Count(a => a.AccountKind == "Site Girişi");
+
+        AddRow(_summaryTable, "Profil adı", _profile.Name);
+        AddRow(_summaryTable, "Ana e-posta", _profile.Email);
+        AddRow(_summaryTable, "Google hesapları", googleCount.ToString());
+        AddRow(_summaryTable, "Site giriş e-postaları", siteCount.ToString());
+        AddRow(_summaryTable, "Klasör", _profile.Folder);
+        AddRow(_summaryTable, "Profil yolu", _stats.ProfilePath);
+        AddRow(_summaryTable, "Chrome sürümü", _stats.ChromeVersion);
+        AddRow(_summaryTable, "Geçmiş kaydı", _stats.HistoryCount.ToString("N0"));
+        AddRow(_summaryTable, "Oturum dosyası", _stats.OpenTabCount > 0 ? "Var (açık sekmeler kayıtlı)" : "Yok");
+        AddRow(_summaryTable, "Yer imi", _profile.BookmarkCount.ToString());
+        AddRow(_summaryTable, "Kayıtlı şifre", _profile.PasswordCount.ToString());
+        AddRow(_summaryTable, "Eklenti", _profile.ExtensionCount.ToString());
+        AddRow(_summaryTable, "Son kullanım", lastActive);
+        AddRow(_summaryTable, "Yedek boyutu", ChromeService.FormatSize(_profile.BackupSizeBytes));
+        AddRow(_summaryTable, "Disk boyutu", $"{ChromeService.FormatSize(_profile.DiskSizeBytes)} (önbellek dahil)");
+        AddRow(_summaryTable, "Önbellek", $"~{ChromeService.FormatSize(Math.Max(0, cacheSize))} (yedeklenmez)");
+    }
+
     private async Task LoadDataAsync()
     {
         UseWaitCursor = true;
@@ -319,7 +207,7 @@ public sealed class ProfileDetailForm : Form
         {
             _profile.Accounts = await Task.Run(() => _service.GetProfileAccounts(_profile));
             _stats = await Task.Run(() => _service.GetProfileStats(_profile));
-            FillSummaryTab();
+            UpdateSummaryTab();
 
             var tab = TabControlFromAccountGrid();
             if (tab != null)
@@ -392,8 +280,16 @@ public sealed class ProfileDetailForm : Form
         }
         catch (Exception ex)
         {
+            var errorMsg = $"Veri yükleme hatası: {ex.Message}";
+            if (ex.InnerException != null)
+                errorMsg += $"\n\nDetay: {ex.InnerException.Message}";
+            
             _passwordGrid.Rows.Clear();
+            _bookmarkGrid.Rows.Clear();
+            _accountGrid.Rows.Clear();
+            
             _passwordGrid.Rows.Add($"Hata: {ex.Message}", "", "");
+            MessageBox.Show(errorMsg, "Profil Veri Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
         finally
         {

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace ChromeProfilApp.Services;
 
@@ -24,7 +24,7 @@ public sealed class ChromePasswordService
         var tempDb = ChromeFileHelper.CopyToTemp(loginDataPath, "chrome_login");
         try
         {
-            using var conn = new SQLiteConnection($"Data Source={tempDb};Mode=ReadOnly");
+            using var conn = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly");
             conn.Open();
 
             using var cmd = conn.CreateCommand();
@@ -69,7 +69,7 @@ public sealed class ChromePasswordService
         var tempDb = ChromeFileHelper.CopyToTemp(loginDataPath, "chrome_login");
         try
         {
-            using var conn = new SQLiteConnection($"Data Source={tempDb};Mode=ReadOnly");
+            using var conn = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly");
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM logins";
@@ -157,21 +157,32 @@ public sealed class ChromePasswordService
         }
     }
 
-    private static byte[] ReadBlob(SQLiteDataReader reader, int ordinal)
+    private static byte[] ReadBlob(SqliteDataReader reader, int ordinal)
     {
-        if (reader.IsDBNull(ordinal)) return [];
+        if (reader.IsDBNull(ordinal)) return Array.Empty<byte>();
 
-        if (reader.GetFieldType(ordinal) == typeof(byte[]))
-            return (byte[])reader.GetValue(ordinal);
-
-        var length = reader.GetBytes(ordinal, 0, null, 0, 0);
-        var buffer = new byte[length];
-        reader.GetBytes(ordinal, 0, buffer, 0, (int)length);
-        return buffer;
+        try
+        {
+            return reader.GetFieldValue<byte[]>(ordinal);
+        }
+        catch
+        {
+            var length = reader.GetBytes(ordinal, 0, null, 0, 0);
+            var buffer = new byte[length];
+            reader.GetBytes(ordinal, 0, buffer, 0, (int)length);
+            return buffer;
+        }
     }
 
     private static void TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); } catch { /* ignore */ }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            // Temp file may be in use
+        }
     }
 }

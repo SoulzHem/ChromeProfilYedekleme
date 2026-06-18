@@ -3,8 +3,8 @@ chcp 65001 >nul
 title Chrome Profil Yedek - Derleme
 cd /d "%~dp0ChromeProfilApp"
 
-echo Derleniyor...
-dotnet publish -c Release -o "..\publish"
+echo Derleniyor (self-contained single-file)...
+dotnet publish -c Release -o "..\publish_temp"
 
 if errorlevel 1 (
     echo Derleme basarisiz.
@@ -12,8 +12,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-copy /Y "..\publish\ChromeProfilYedek.exe" "..\ChromeProfilYedek.exe" >nul
+cd /d "%~dp0"
+copy /Y "publish_temp\ChromeProfilYedek.exe" "ChromeProfilYedek.exe" >nul
+rd /s /q "publish_temp"
+
 echo.
-echo Basarili: ChromeProfilYedek.exe olusturuldu.
+echo Basarili: ChromeProfilYedek.exe olusturuldu (tek dosya, self-contained).
 echo Konum: %~dp0ChromeProfilYedek.exe
 pause

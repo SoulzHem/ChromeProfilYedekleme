@@ -1,5 +1,5 @@
 using ChromeProfilApp.Models;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace ChromeProfilApp.Services;
 
@@ -13,7 +13,7 @@ public sealed class HistoryService
         var tempDb = ChromeFileHelper.CopyToTemp(historyPath, "chrome_history");
         try
         {
-            using var conn = new SQLiteConnection($"Data Source={tempDb};Mode=ReadOnly");
+            using var conn = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly");
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
@@ -71,6 +71,13 @@ public sealed class HistoryService
 
     private static void TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); } catch { /* ignore */ }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            // Temp file may be in use
+        }
     }
 }

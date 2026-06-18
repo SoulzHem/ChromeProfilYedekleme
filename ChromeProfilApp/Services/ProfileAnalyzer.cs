@@ -65,7 +65,10 @@ public sealed class ProfileAnalyzer
                 foreach (var file in Directory.EnumerateFiles(current))
                 {
                     try { total += new FileInfo(file).Length; }
-                    catch { /* ignore locked files */ }
+                    catch
+                    {
+                        // File may be locked by Chrome or another process
+                    }
                 }
 
                 foreach (var dir in Directory.EnumerateDirectories(current))

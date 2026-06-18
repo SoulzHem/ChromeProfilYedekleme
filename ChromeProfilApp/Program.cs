@@ -12,16 +12,25 @@ internal static class Program
 
         try
         {
-            // System.Data.SQLite initializes itself automatically.
+            // Ensure SQLite native provider is initialized for single-file publish
+            try
+            {
+                SQLitePCL.Batteries_V2.Init();
+            }
+            catch
+            {
+                // ignore if initialization fails; runtime will surface useful errors
+            }
 
             if (args.Contains("--otomatik-yedek", StringComparer.OrdinalIgnoreCase))
             {
                 Environment.Exit(SilentBackupRunner.Run());
-                return;
             }
-
-            ApplicationConfiguration.Initialize();
-            Application.Run(new MainForm());
+            else
+            {
+                ApplicationConfiguration.Initialize();
+                Application.Run(new MainForm());
+            }
         }
         catch (Exception ex)
         {

@@ -9,6 +9,7 @@ namespace ChromeProfilApp;
 public sealed class MainForm : Form
 {
     private readonly ChromeService _service = new();
+    private readonly BackupCoordinator _backupCoordinator;
     private readonly DataGridView _grid = new();
     private readonly ComboBox _backupCombo = new();
     private readonly ProgressBar _progress = new();
@@ -43,73 +44,57 @@ public sealed class MainForm : Form
         AppIconHelper.Apply(this);
 
         BuildLayout();
+        _backupCoordinator = new BackupCoordinator(_service);
         Shown += async (_, _) => await LoadProfilesAsync();
     }
 
     private void BuildLayout()
     {
-        var header = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 108,
-            BackColor = Color.FromArgb(26, 115, 232)
-        };
-        header.Paint += (_, e) =>
-        {
-            using var brush = new LinearGradientBrush(header.ClientRectangle,
-                Color.FromArgb(26, 115, 232), Color.FromArgb(66, 133, 244), 0f);
-            e.Graphics.FillRectangle(brush, header.ClientRectangle);
-        };
+        var header = MainFormLayoutBuilder.CreateHeader(out var headerIcon);
+        var pathPanel = MainFormLayoutBuilder.CreateBackupPathPanel(_backupPathBox, _btnBrowseBackup);
+        var toolbar = MainFormLayoutBuilder.CreateToolbar(_btnRefresh, _btnBackupDetail, _btnBackup, _btnRestore, _btnDetail, _btnOpenBackupFolder);
+        var toolbar2 = MainFormLayoutBuilder.CreateSecondaryToolbar(_btnCompare, _btnSchedule);
+        var selectPanel = CreateSelectPanel();
+        var profilePanel = MainFormLayoutBuilder.CreateProfilePanel(_grid, selectPanel, _profileCountLabel);
+        var bottomPanel = MainFormLayoutBuilder.CreateBottomPanel(_backupCombo, _progress, _statusLabel, _logBox);
 
-        header.Controls.Add(new Label
-        {
-            Text = "Chrome Profil Yedekleme",
-            ForeColor = Color.White,
-            Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
-            AutoSize = true,
-            Location = new Point(72, 16)
-        });
-        header.Controls.Add(new Label
-        {
-            Text = "Profillerinizi yedekleyin, format sonrası tek tıkla geri yükleyin",
-            ForeColor = Color.FromArgb(230, 240, 255),
-            Font = new Font("Segoe UI", 9.5F),
-            AutoSize = true,
-            Location = new Point(74, 58)
-        });
+        SetupHeader(headerIcon);
+        ConfigureBackupPathPanel(pathPanel);
+        ConfigureToolbar(toolbar);
+        ConfigureSecondaryToolbar(toolbar2);
+        ConfigureProfilePanel(profilePanel, selectPanel);
+        ConfigureBottomPanel(bottomPanel);
 
-        var headerIcon = new PictureBox
-        {
-            Size = new Size(40, 40),
-            Location = new Point(24, 22),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BackColor = Color.Transparent
-        };
+        Controls.Add(profilePanel);
+        Controls.Add(bottomPanel);
+        Controls.Add(toolbar2);
+        Controls.Add(toolbar);
+        Controls.Add(pathPanel);
+        Controls.Add(header);
+    }
+
+    private Panel CreateSelectPanel()
+    {
+        var selectPanel = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = Color.FromArgb(248, 249, 252) };
+        StyleLinkButton(_btnSelectAll, "Tümünü seç");
+        StyleLinkButton(_btnSelectNone, "Seçimi kaldır");
+        _btnSelectAll.Location = new Point(0, 4);
+        _btnSelectNone.Location = new Point(110, 4);
+        _btnSelectAll.Click += (_, _) => SetAllProfileSelection(true);
+        _btnSelectNone.Click += (_, _) => SetAllProfileSelection(false);
+        selectPanel.Controls.AddRange(new Control[] { _btnSelectAll, _btnSelectNone });
+        return selectPanel;
+    }
+
+    private void SetupHeader(PictureBox headerIcon)
+    {
         var appIcon = AppIconHelper.Load();
         if (appIcon != null)
             headerIcon.Image = appIcon.ToBitmap();
-        header.Controls.Add(headerIcon);
+    }
 
-        var pathPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            Height = 52,
-            Padding = new Padding(12, 10, 12, 6),
-            BackColor = Color.White,
-            ColumnCount = 3
-        };
-        pathPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 108));
-        pathPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        pathPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-
-        var pathLabel = new Label
-        {
-            Text = "Yedek klasörü:",
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleLeft,
-            ForeColor = Color.FromArgb(60, 64, 67)
-        };
-
+    private void ConfigureBackupPathPanel(TableLayoutPanel pathPanel)
+    {
         _backupPathBox.ReadOnly = true;
         _backupPathBox.Dock = DockStyle.Fill;
         _backupPathBox.BackColor = Color.FromArgb(248, 249, 252);
@@ -120,18 +105,12 @@ public sealed class MainForm : Form
         _btnBrowseBackup.Dock = DockStyle.Fill;
         _btnBrowseBackup.Click += (_, _) => BrowseBackupFolder();
 
-        pathPanel.Controls.Add(pathLabel, 0, 0);
         pathPanel.Controls.Add(_backupPathBox, 1, 0);
         pathPanel.Controls.Add(_btnBrowseBackup, 2, 0);
+    }
 
-        var toolbar = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 56,
-            Padding = new Padding(16, 8, 16, 8),
-            BackColor = Color.White
-        };
-
+    private void ConfigureToolbar(Panel toolbar)
+    {
         StyleButton(_btnRefresh, "Yenile", Color.FromArgb(95, 99, 104));
         StyleButton(_btnBackupDetail, "Yedek Detayı", Color.FromArgb(66, 133, 244));
         StyleButton(_btnBackup, "Yedekle", Color.FromArgb(26, 115, 232));
@@ -154,16 +133,10 @@ public sealed class MainForm : Form
         _btnRestore.Click += async (_, _) => await RunRestoreAsync();
         _btnDetail.Click += (_, _) => OpenProfileDetail();
         _btnOpenBackupFolder.Click += (_, _) => OpenBackupFolder();
+    }
 
-        toolbar.Controls.AddRange([_btnRefresh, _btnBackupDetail, _btnBackup, _btnRestore, _btnDetail, _btnOpenBackupFolder]);
-
-        var toolbar2 = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 48,
-            Padding = new Padding(16, 4, 16, 8),
-            BackColor = Color.White
-        };
+    private void ConfigureSecondaryToolbar(Panel toolbar2)
+    {
         StyleButton(_btnCompare, "Yedek Karşılaştır", Color.FromArgb(95, 99, 104));
         StyleButton(_btnSchedule, "Zamanlı Yedek", Color.FromArgb(95, 99, 104));
         _btnCompare.Size = new Size(140, 32);
@@ -172,29 +145,15 @@ public sealed class MainForm : Form
         _btnSchedule.Location = new Point(166, 6);
         _btnCompare.Click += (_, _) => OpenBackupCompare();
         _btnSchedule.Click += (_, _) => OpenScheduleBackup();
-        toolbar2.Controls.AddRange([_btnCompare, _btnSchedule]);
+    }
 
-        var profilePanel = new Panel
-        {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(16, 8, 16, 8),
-            BackColor = Color.FromArgb(248, 249, 252)
-        };
-
+    private void ConfigureProfilePanel(Panel profilePanel, Panel selectPanel)
+    {
         _profileCountLabel.Text = "Profiller yükleniyor...";
         _profileCountLabel.Dock = DockStyle.Top;
         _profileCountLabel.Height = 22;
         _profileCountLabel.Font = new Font("Segoe UI Semibold", 9.5F);
         _profileCountLabel.ForeColor = Color.FromArgb(32, 33, 36);
-
-        var selectPanel = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = Color.FromArgb(248, 249, 252) };
-        StyleLinkButton(_btnSelectAll, "Tümünü seç");
-        StyleLinkButton(_btnSelectNone, "Seçimi kaldır");
-        _btnSelectAll.Location = new Point(0, 4);
-        _btnSelectNone.Location = new Point(110, 4);
-        _btnSelectAll.Click += (_, _) => SetAllProfileSelection(true);
-        _btnSelectNone.Click += (_, _) => SetAllProfileSelection(false);
-        selectPanel.Controls.AddRange([_btnSelectAll, _btnSelectNone]);
 
         ConfigureGrid();
         _grid.Dock = DockStyle.Fill;
@@ -221,23 +180,10 @@ public sealed class MainForm : Form
         profilePanel.Controls.Add(_grid);
         profilePanel.Controls.Add(selectPanel);
         profilePanel.Controls.Add(_profileCountLabel);
+    }
 
-        var bottomPanel = new Panel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 190,
-            Padding = new Padding(16, 8, 16, 16),
-            BackColor = Color.FromArgb(248, 249, 252)
-        };
-
-        bottomPanel.Controls.Add(new Label
-        {
-            Text = "Geri yüklenecek yedek:",
-            AutoSize = true,
-            Location = new Point(16, 8),
-            ForeColor = Color.FromArgb(60, 64, 67)
-        });
-
+    private void ConfigureBottomPanel(Panel bottomPanel)
+    {
         _backupCombo.DropDownStyle = ComboBoxStyle.DropDownList;
         _backupCombo.Location = new Point(16, 32);
         _backupCombo.Size = new Size(620, 28);
@@ -262,14 +208,7 @@ public sealed class MainForm : Form
         _logBox.BorderStyle = BorderStyle.FixedSingle;
         _logBox.Font = new Font("Consolas", 9F);
 
-        bottomPanel.Controls.AddRange([_backupCombo, _progress, _statusLabel, _logBox]);
-
-        Controls.Add(profilePanel);
-        Controls.Add(bottomPanel);
-        Controls.Add(toolbar2);
-        Controls.Add(toolbar);
-        Controls.Add(pathPanel);
-        Controls.Add(header);
+        bottomPanel.Controls.AddRange(new Control[] { _backupCombo, _progress, _statusLabel, _logBox });
     }
 
     private void ConfigureGrid()
@@ -401,6 +340,8 @@ public sealed class MainForm : Form
         {
             _profileCountLabel.Text = "Profil bulunamadı";
             AppendLog($"Hata: {ex.Message}");
+            if (!string.IsNullOrEmpty(ex.InnerException?.Message))
+                AppendLog($"Detay: {ex.InnerException.Message}");
             MessageBox.Show(ex.Message, "Profil Okuma Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
         finally
@@ -535,37 +476,8 @@ public sealed class MainForm : Form
 
     private async Task RunBackupAsync()
     {
-        if (_busy) return;
-
-        if (!Directory.Exists(_service.ChromeUserData))
-        {
-            MessageBox.Show("Chrome verisi bulunamadı.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        if (_profiles.Count == 0)
-        {
-            MessageBox.Show("Önce profilleri yükleyin (Yenile).", "Uyarı",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-
-        var selected = GetSelectedProfiles();
-        if (selected.Count == 0)
-        {
-            MessageBox.Show("Yedeklemek için en az bir profil seçin (Yedekle sütunu).", "Uyarı",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-
-        var options = _service.GetBackupOptions();
-        var preview = _service.BuildBackupPreview(selected, options, _service.BackupRoot);
-        using (var detailForm = new BackupDetailForm(preview, confirmMode: true))
-        {
-            if (detailForm.ShowDialog(this) != DialogResult.OK || !detailForm.StartBackupConfirmed)
-                return;
-            options = detailForm.Options;
-        }
+        if (!TryPrepareBackup(out var selected)) return;
+        if (!TryConfirmBackupOptions(selected, out var options)) return;
 
         if (_service.IsChromeRunning())
         {
@@ -584,8 +496,12 @@ public sealed class MainForm : Form
 
         try
         {
-            var backupDir = await Task.Run(() =>
-                _service.BackupAll(selected, options, progress, percent, _service.BackupRoot));
+            var backupDir = await _backupCoordinator.RunBackupAsync(this, selected, progress, percent);
+            if (backupDir == null)
+            {
+                // user cancelled or failed
+                return;
+            }
             AppendLog($"Yedek klasörü: {backupDir}");
             MessageBox.Show(
                 $"Yedekleme tamamlandı!\n\n{backupDir}\n\nBu klasörü USB veya buluta kopyalayın.",
@@ -602,6 +518,47 @@ public sealed class MainForm : Form
             _progress.Visible = false;
             SetBusy(false);
         }
+    }
+
+    private bool TryPrepareBackup(out List<ChromeProfile> selected)
+    {
+        selected = new List<ChromeProfile>();
+        if (_busy) return false;
+        if (!Directory.Exists(_service.ChromeUserData))
+        {
+            MessageBox.Show("Chrome verisi bulunamadı.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+        if (_profiles.Count == 0)
+        {
+            MessageBox.Show("Önce profilleri yükleyin (Yenile).", "Uyarı",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return false;
+        }
+
+        selected = GetSelectedProfiles();
+        if (selected.Count == 0)
+        {
+            MessageBox.Show("Yedeklemek için en az bir profil seçin (Yedekle sütunu).", "Uyarı",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryConfirmBackupOptions(List<ChromeProfile> selected, out BackupOptions options)
+    {
+        options = _service.GetBackupOptions();
+        var preview = _service.BuildBackupPreview(selected, options, _service.BackupRoot);
+        using var detailForm = new BackupDetailForm(preview, confirmMode: true);
+        if (detailForm.ShowDialog(this) != DialogResult.OK || !detailForm.StartBackupConfirmed)
+        {
+            options = new BackupOptions();
+            return false;
+        }
+        options = detailForm.Options;
+        return true;
     }
 
     private async Task RunRestoreAsync()

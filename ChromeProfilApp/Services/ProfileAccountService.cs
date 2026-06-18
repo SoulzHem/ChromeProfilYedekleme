@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using ChromeProfilApp.Models;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace ChromeProfilApp.Services;
 
@@ -157,7 +157,7 @@ public sealed class ProfileAccountService
         var tempDb = ChromeFileHelper.CopyToTemp(loginDataPath, "chrome_login_emails");
         try
         {
-            using var conn = new SQLiteConnection($"Data Source={tempDb};Mode=ReadOnly");
+            using var conn = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly");
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
@@ -185,6 +185,13 @@ public sealed class ProfileAccountService
 
     private static void TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); } catch { /* ignore */ }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            // Temp file may be in use
+        }
     }
 }

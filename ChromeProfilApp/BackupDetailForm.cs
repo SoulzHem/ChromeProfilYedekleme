@@ -108,11 +108,22 @@ public sealed class BackupDetailForm : Form
         }
         else
         {
+            var btnStart = CreateButton("Yedeklemeyi Başlat", Color.FromArgb(26, 115, 232));
+            btnStart.Location = new Point(680, 8);
+            btnStart.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnStart.Click += (_, _) =>
+            {
+                Options = ReadOptions();
+                StartBackupConfirmed = true;
+                DialogResult = DialogResult.OK;
+                Close();
+            };
+
             var btnClose = CreateButton("Kapat", Color.FromArgb(95, 99, 104));
             btnClose.Location = new Point(820, 8);
             btnClose.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnClose.Click += (_, _) => Close();
-            footer.Controls.Add(btnClose);
+            footer.Controls.AddRange([btnStart, btnClose]);
         }
 
         Controls.Add(tabs);

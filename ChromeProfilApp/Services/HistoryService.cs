@@ -1,5 +1,5 @@
 using ChromeProfilApp.Models;
-using Microsoft.Data.Sqlite;
+using System.Data.SQLite;
 
 namespace ChromeProfilApp.Services;
 
@@ -13,16 +13,16 @@ public sealed class HistoryService
         var tempDb = ChromeFileHelper.CopyToTemp(historyPath, "chrome_history");
         try
         {
-            using var conn = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly");
+            using var conn = new SQLiteConnection($"Data Source={tempDb};Mode=ReadOnly");
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
                 SELECT u.title, u.url, u.visit_count, u.last_visit_time
                 FROM urls u
                 ORDER BY u.last_visit_time DESC
-                LIMIT $limit
+                LIMIT @limit
                 """;
-            cmd.Parameters.AddWithValue("$limit", limit);
+            cmd.Parameters.AddWithValue("@limit", limit);
 
             var list = new List<HistoryItem>();
             using var reader = cmd.ExecuteReader();

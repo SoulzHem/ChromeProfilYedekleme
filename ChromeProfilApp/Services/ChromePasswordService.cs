@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Data.Sqlite;
+using System.Data.SQLite;
 
 namespace ChromeProfilApp.Services;
 
@@ -24,7 +24,7 @@ public sealed class ChromePasswordService
         var tempDb = ChromeFileHelper.CopyToTemp(loginDataPath, "chrome_login");
         try
         {
-            using var conn = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly");
+            using var conn = new SQLiteConnection($"Data Source={tempDb};Mode=ReadOnly");
             conn.Open();
 
             using var cmd = conn.CreateCommand();
@@ -69,7 +69,7 @@ public sealed class ChromePasswordService
         var tempDb = ChromeFileHelper.CopyToTemp(loginDataPath, "chrome_login");
         try
         {
-            using var conn = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly");
+            using var conn = new SQLiteConnection($"Data Source={tempDb};Mode=ReadOnly");
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM logins";
@@ -157,7 +157,7 @@ public sealed class ChromePasswordService
         }
     }
 
-    private static byte[] ReadBlob(SqliteDataReader reader, int ordinal)
+    private static byte[] ReadBlob(SQLiteDataReader reader, int ordinal)
     {
         if (reader.IsDBNull(ordinal)) return [];
 

@@ -1,5 +1,4 @@
 using System.IO;
-using SQLitePCL;
 
 namespace ChromeProfilApp;
 
@@ -13,7 +12,7 @@ internal static class Program
 
         try
         {
-            Batteries_V2.Init();
+            // System.Data.SQLite initializes itself automatically.
 
             if (args.Contains("--otomatik-yedek", StringComparer.OrdinalIgnoreCase))
             {

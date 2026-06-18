@@ -30,21 +30,29 @@ Google Chrome profillerinizi yedekleyip format sonrası geri yükleyen Windows u
 2. EXE'yi istediğiniz klasöre koyun
 3. Çift tıklayarak açın
 
+Not: Son sürümlerde uygulama tek-dosya (self-contained) olarak yayınlanmaktadır — çalıştırmak için sistemde .NET SDK/Runtime kurulmasına gerek yoktur. Tek dosya boyutu platforma göre ~110-120 MB civarındadır.
+
 ## Derleme (geliştirici)
 
-```bat
-Derle.bat
-```
+Projeyi yerel olarak derlemek veya kendi EXE'nizi üretmek için `Derle.bat` kullanabilirsiniz. Bu script, `dotnet publish` ile tek-dosya (self-contained) bir EXE üretir ve köke kopyalar.
 
-veya:
+Kısa kullanım (PowerShell):
 
 ```powershell
 cd ChromeProfilApp
-dotnet publish -c Release -o ..\publish
+.
+\..\Derle.bat
+```
+
+Veya manuel:
+
+```powershell
+cd ChromeProfilApp
+dotnet publish -c Release -o ..\publish -p:PublishSingleFile=true -p:SelfContained=true -p:IncludeNativeLibrariesForSelfExtract=true
 copy ..\publish\ChromeProfilYedek.exe ..\ChromeProfilYedek.exe
 ```
 
-Çıktı: `ChromeProfilYedek.exe` (~48 MB, tek dosya, .NET kurulumu gerekmez)
+Çıktı: `ChromeProfilYedek.exe` (self-contained, native sqlite dahil edecek biçimde paketlenir). Tek dosya paket boyutu ~110-120 MB olabilir.
 
 ## Kullanım
 
@@ -83,6 +91,12 @@ chromeprofil/
 - Format sonrası bazı şifreler Windows hesabına bağlı olduğu için çalışmayabilir
 - Google hesabıyla giriş yaptığınız profiller genelde tekrar oturum açar
 
+Tek-dosya (single-file) paketlerde native SQLite yükleyicisinin (e_sqlite3) doğru çalışması için proje `Microsoft.Data.Sqlite` + `SQLitePCLRaw` bundle kullanmaktadır. Eğer çalıştırma sırasında "DLL not found" benzeri bir hata alırsanız:
+
+1. Uygulamayı aynı klasörde çalıştırmayı deneyin (bazı antivirüs/izinler extract sürecini engelleyebilir).
+2. Eğer sorun devam ederse, `startup-error.log` dosyasını uygulama klasöründe kontrol edip hata detayını bizimle paylaşın.
+3. Geliştirici olarak derliyorsanız `Derle.bat` veya `dotnet publish` parametrelerini kullanın; proje `Program.Main` içinde `SQLitePCL.Batteries_V2.Init()` çağrısı yapılmaktadır.
+
 ## Windows Defender uyarısı
 
 Bu uygulama **açık kaynaklı** bir yedekleme aracıdır; imzasız tek EXE dosyaları ve Chrome profil/şifre dosyalarına erişim Defender tarafından yanlışlıkla “zararlı” sayılabilir.
@@ -97,7 +111,7 @@ Bu uygulama **açık kaynaklı** bir yedekleme aracıdır; imzasız tek EXE dosy
 2. Windows Güvenliği → Virüs ve tehdit koruması → **İstisnalar** → EXE klasörünü ekleyin
 3. [Microsoft yanlış pozitif bildirimi](https://www.microsoft.com/en-us/wdsi/filesubmission) gönderin (dosya: `ChromeProfilYedek.exe`, geliştirici: SoulzHem)
 
-Kalıcı çözüm için kod imzalama sertifikası gerekir (ücretli).
+
 
 ## Lisans
 
